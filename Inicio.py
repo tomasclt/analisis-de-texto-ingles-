@@ -1,50 +1,49 @@
 import streamlit as st
 from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
-from deep_translator import GoogleTranslator
 
-st.title("TF-IDF con traducción (Español ↔ Inglés)")
+st.title("TF-IDF Demo (English documents only)")
 
-st.write("Cada línea se toma como un documento en español. Primero se traduce al inglés, "
-         "se calcula TF-IDF con stopwords en inglés y al final se muestran los resultados en español.")
+st.write("""
+Each line is treated as a **document** (it can be a sentence, a paragraph, or a longer text).  
+⚠️ Please write the documents in **English** so that stopwords (like *the, a, and*) are removed automatically.
+""")
 
-# Entrada de documentos en español
-text_input = st.text_area("Escribe tus documentos (uno por línea):",
-                          "El perro ladra fuerte.\nEl gato maúlla en la noche.\nEl perro y el gato juegan juntos.")
+# Default input in English
+text_input = st.text_area(
+    "Write your documents (one per line):",
+    "The dog barks loudly.\nThe cat meows at night.\nThe dog and the cat play together."
+)
 
-if st.button("Calcular TF-IDF"):
-    documentos = [doc.strip() for doc in text_input.split("\n") if doc.strip()]
+if st.button("Compute TF-IDF"):
+    documents = [doc.strip() for doc in text_input.split("\n") if doc.strip()]
 
-    if len(documentos) > 1:
-        # Traducir documentos al inglés
-        translator = GoogleTranslator(source="es", target="en")
-        docs_en = [translator.translate(doc) for doc in documentos]
-
-        # Vectorizador con stopwords en inglés
+    if len(documents) > 1:
+        # Vectorizer with English stopwords
         vectorizer = TfidfVectorizer(stop_words="english")
-        X = vectorizer.fit_transform(docs_en)
+        X = vectorizer.fit_transform(documents)
 
-        # DataFrame con resultados
+        # DataFrame with TF-IDF matrix
         df_tfidf = pd.DataFrame(
             X.toarray(),
             columns=vectorizer.get_feature_names_out(),
-            index=[f"Doc {i+1}" for i in range(len(documentos))]
+            index=[f"Doc {i+1}" for i in range(len(documents))]
         )
 
-        st.write("### Matriz TF-IDF (procesada en inglés)")
+        st.write("### TF-IDF Matrix")
         st.dataframe(df_tfidf.round(3))
 
-        # Mostrar top palabras traducidas al español
-        st.write("### Palabras más importantes por documento (traducidas al español)")
-        back_translator = GoogleTranslator(source="en", target="es")
-        for i, doc in enumerate(documentos):
+        # Show top terms per document
+        st.write("### Most important words per document")
+        for i, doc in enumerate(documents):
             scores = df_tfidf.iloc[i]
             top_terms = scores.sort_values(ascending=False).head(5)
-            translated_terms = [back_translator.translate(term) for term in top_terms.index]
             st.write(f"**Doc {i+1}:** {doc}")
-            st.bar_chart(pd.Series(top_terms.values, index=translated_terms))
+            st.bar_chart(top_terms)
 
     else:
-        st.warning("Por favor, ingresa al menos dos documentos.")
+        st.warning("Please enter at least two documents.")
+
+
 
 
